@@ -1,66 +1,106 @@
 const ChatsRoom = require("./models/chatsRoom")
 const User = require("./models/user")
 
+const HomeRoom = async (name, socketId) => {
+
+    const UserRoom = await ChatsRoom.findOne({ nameUser: name })
+    let ressOk = {}
+    let ressErr = {}
+
+    if (UserRoom) {
+        UserRoom.idWs = socketId
+        await UserRoom.save().then(() => {
+            ressOk = {
+                ress: { Rooms: UserRoom },
+                WhatHappened: "new id user good"
+            }
+            return { ressOk, ressErr }
+        }).catch((err) => {
+            ressErr = {
+                ress: err,
+                WhatHappened: "new id user error"
+            }
+        })
+        return { ressErr, ressOk }
+    } else {
+        ressErr = {
+            ress: "name User Error",
+            WhatHappened: "name User Error"
+        }
+        return { ressErr, ressErr }
+    }
+
+}
+
 const addUser = async (id, name, nameRoom) => {
 
     const UserName = await User.findOne({ nameUser: name })
     const UserRoom = await ChatsRoom.findOne({ nameUser: name })
-    let returnsok
-    let errors
-
+    let ressOk = {}
+    let ressErr = {}
+    if (UserName == null) {
+        ressErr = { ress: "user null", WhatHappened: "user null" }
+        return { ressOk, ressErr }
+    }
     if (UserName) {
         if (UserRoom == null) {
             const chatNewConnect = new ChatsRoom({
                 Rooms: [{
-                    nameRoom: nameRoom,
+                    Room: nameRoom,
                     msj: [],
                 }],
                 idWs: id,
                 nameUser: name
             })
 
-            chatNewConnect.save().then(() => {
-                returnsok = "add new user room goood"
-            }).catch(() => {
-                errors = "in add new user room error"
-            })
-
-        } else if (UserRoom) {
-            UserRoom.idWs = id
-            await UserRoom.save().then(() => {
-                returnsok = "new id user good"
-            }).catch(() => {
-                errors = "new id user error"
+            await chatNewConnect.save().then(() => {
+                ressOk = {
+                    ress: { nameRoom, name },
+                    WhatHappened: "add new user room goood"
+                }
+                return { ressOk }
+            }).catch((err) => {
+                ressErr = {
+                    ress: err,
+                    WhatHappened: "in add new user room error"
+                }
+                return { ressErr }
             })
         }
-        return { returnsok, errors }
+        return { ressOk, ressErr }
+
     } else if (!name || !nameRoom) {
-        errors = "Username and nameRoom are required or not exist"
-        return { returnsok, errors }
+        ressErr = {
+            ress: "name? room? wtf men",
+            WhatHappened: "Username and nameRoom are required or not exist"
+        }
+        return { ressOk, ressErr }
     }
 }
 
 const SaveMsj = async (socketId, nameUser, nameRoom, message) => {
 
-    const UserName = await User.findOne({ nameUser: nameUser })
-    let returnsok
-    let errors
+    const UserRooms = await ChatsRoom.findOne({ nameUser: nameUser })
 
-    if (UserName.idWs == socketId && nameRoom) {
-        const addmsj = await UserName.Rooms.find(room => room.nameRoom == nameRoom)
+    let ressOk = {}
+    let ressErr = {}
+    message.toString()
+
+    if (UserRooms.idWs == socketId && nameRoom && typeof (message) == String) {
+        const addmsj = await UserRooms.Rooms.find(room => room.Room == nameRoom)
         addmsj.msj.push({
             msj: message,
             date: Date
         })
         addmsj.save().then(() => {
-            returnsok = "save msj ok"
+            ressOk = "save msj ok"
         }).catch(() => {
-            errors = "something went wrong when saving the msg"
+            ressErr = "something went wrong when saving the msg"
         })
     } else {
-        errors = "missing data or id error"
+        ressErr = "missing data or id error"
     }
-    return { returnsok, errors }
+    return { ressOk, ressErr }
 }
 
 const deleteUser = async (idWs) => {
@@ -74,5 +114,12 @@ const deleteUser = async (idWs) => {
 
 
 // const getUsers = (nameRoom) => User.filter(user => user.nameRoom === nameRoom)
+const disconnect = (socketId) => {
+    const UserRooms = ChatsRoom.findOne({ idWs: socketId })
+    if (UserRooms) {
+        const rooms = UserRooms.Rooms.map(room => room)
+        return { nameUser: UserRooms.nameUser }
+    }
+}
 
-module.exports = { addUser }
+module.exports = { addUser, HomeRoom }
