@@ -1,4 +1,4 @@
-const { addUser, HomeRoom } = require('./servicesWs')
+const { addUser, HomeRoom, SaveMsj } = require('./servicesWs')
 
 const socket = (io) => {
 
@@ -9,8 +9,7 @@ const socket = (io) => {
             if (ressErr.ress) {
                 io.in(socket.id).emit("notificationError", { ressErr })
             } else if (ressOk.ress) {
-                console.log(ressOk.ress.Rooms, "aa");
-                // socket.join(ressOk.ress)
+                io.in(socket.id).emit("notificationError", { ressOk })
             }
 
         })
@@ -61,14 +60,22 @@ const socket = (io) => {
 
 
         socket.on('sendMessage', async ({ message, nameUser, nameRoom }) => {
-            message.toString()
+
+            const { ressOk, ressErr } = await SaveMsj(socket.id, nameUser, nameRoom, message)
+
             if (message && nameUser && nameRoom) {
-                // const save = await SaveMsj(socket.id,nameUser,nameRoom,message)
-                // if(save){}
-                io.in(nameRoom).emit('message', { nameUser: user.name, text: message });
+                if (ressErr.WhatHappened ==
+                    "user room the not exist" ||
+                    "something went wrong when saving the msg" ||
+                    "missing data or id error"
+                ) {
+                    io.in(socket.id).emit("notificationError", { ressErr })
+                } else if (ressOk.WhatHappened == "save msj ok") {
+                    io.in(nameRoom).emit('message', { nameUser, nameRoom, text: message });
+                }
+
             } else {
-                // io.in(socket.id).emit("notificationError", { ressErr })
-                console.log("missing data");
+                io.in(socket.id).emit("notificationError", { ressErr })
             }
         })
 

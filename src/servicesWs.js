@@ -11,7 +11,7 @@ const HomeRoom = async (name, socketId) => {
         UserRoom.idWs = socketId
         await UserRoom.save().then(() => {
             ressOk = {
-                ress: { Rooms: UserRoom },
+                ress: UserRoom.Rooms,
                 WhatHappened: "new id user good"
             }
             return { ressOk, ressErr }
@@ -38,7 +38,7 @@ const addUser = async (id, name, nameRoom) => {
 
     const UserName = await User.findOne({ nameUser: name })
     if (UserName === null) {
-        ressErr = { ress: "user null or room not exist", WhatHappened: "user null or room not exist" }
+        ressErr = { ress: { nameRoom, name }, WhatHappened: "user null or room not exist" }
         return { ressOk, ressErr }
     }
 
@@ -47,23 +47,22 @@ const addUser = async (id, name, nameRoom) => {
     if (UserRoom) {
         const repeatUser = await UserRoom.Rooms.find(room => room.Room === nameRoom)
         if (repeatUser) {
-            ressOk = { ress: "the user is already in the room", WhatHappened: "the user is already in the room" }
+            ressOk = { ress: { nameRoom, name }, WhatHappened: "the user is already in the room" }
         } else if (repeatUser == undefined) {
             UserRoom.Rooms.push({
                 Room: nameRoom,
                 msj: [],
             })
             try {
-                UserRoom.save()
+                await UserRoom.save()
                 ressOk = { ress: { nameRoom, name }, WhatHappened: "new room user good" }
             } catch (error) {
                 console.log(error);
-                 ressErr = { ress: error, WhatHappened: "in new user room error" }
+                ressErr = { ress: error, WhatHappened: "in new user room error" }
             }
         }
         return { ressOk, ressErr }
     }
-
 
 
     if (UserName) {
@@ -96,49 +95,37 @@ const addUser = async (id, name, nameRoom) => {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const SaveMsj = async (socketId, nameUser, nameRoom, message) => {
 
     const UserRooms = await ChatsRoom.findOne({ nameUser: nameUser })
-
     let ressOk = {}
     let ressErr = {}
-    message.toString()
+    if (UserRooms == null) {
+        ressErr = {
+            ress: "user room the not exist",
+            WhatHappened: "user room the not exist"
+        }
+        return { ressOk, ressErr }
+    }
 
-    if (UserRooms.idWs == socketId && nameRoom && typeof (message) == String) {
+    if (UserRooms.idWs == socketId && nameRoom && message) {
         const addmsj = await UserRooms.Rooms.find(room => room.Room == nameRoom)
-        addmsj.msj.push({
-            msj: message,
-            date: Date
-        })
-        addmsj.save().then(() => {
-            ressOk = "save msj ok"
-        }).catch(() => {
-            ressErr = "something went wrong when saving the msg"
-        })
+
+        try {
+            addmsj.msj.push({
+                msj: message,
+                date: Date
+            })
+            addmsj.save()
+            ressOk = { ress: { UserRooms, message }, WhatHappened: "save msj ok" }
+        } catch (error) {
+            ressErr = { ress: error, WhatHappened: "something went wrong when saving the msg" }
+        }
+        return { ressOk, ressErr }
     } else {
+        console.log(socketId, nameUser, nameRoom, message);
         ressErr = "missing data or id error"
+        return { ressOk, ressErr }
     }
     return { ressOk, ressErr }
 }
@@ -162,4 +149,4 @@ const disconnect = (socketId) => {
     }
 }
 
-module.exports = { addUser, HomeRoom }
+module.exports = { addUser, HomeRoom, SaveMsj }
