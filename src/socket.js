@@ -28,9 +28,7 @@ const socket = (io) => {
 
             }
 
-            console.log(ressOk, "ressOk yeeea")
             if (ressOk.WhatHappened == "add new user room goood") {
-                socket.join(ressOk.ress.nameRoom)
                 socket.in(ressOk.ress.nameRoom).emit('notification',
                     {
                         title: 'Someone\'s here',
@@ -38,7 +36,6 @@ const socket = (io) => {
 
                     })
             } else if (ressOk.WhatHappened == "new room user good") {
-                socket.join(ressOk.ress.nameRoom)
                 socket.in(ressOk.ress.nameRoom).emit('notification',
                     {
                         title: 'Someone\'s here',
@@ -71,6 +68,8 @@ const socket = (io) => {
                 ) {
                     io.in(socket.id).emit("notificationError", { ressErr })
                 } else if (ressOk.WhatHappened == "save msj ok") {
+                    console.log("aaa");
+                    socket.join(nameRoom)
                     io.in(nameRoom).emit('message', { nameUser, nameRoom, text: message });
                 }
 

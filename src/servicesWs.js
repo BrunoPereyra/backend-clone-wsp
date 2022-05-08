@@ -98,8 +98,6 @@ const addUser = async (id, name, nameRoom) => {
 const SaveMsj = async (socketId, nameUser, nameRoom, message) => {
 
     const UserRooms = await ChatsRoom.findOne({ nameUser: nameUser })
-    let ressOk = {}
-    let ressErr = {}
     if (UserRooms == null) {
         ressErr = {
             ress: "user room the not exist",
@@ -107,23 +105,36 @@ const SaveMsj = async (socketId, nameUser, nameRoom, message) => {
         }
         return { ressOk, ressErr }
     }
+    let ressOk = {}
+    let ressErr = {}
 
-    if (UserRooms.idWs == socketId && nameRoom && message) {
-        const addmsj = await UserRooms.Rooms.find(room => room.Room == nameRoom)
+    if (UserRooms.idWs === socketId && nameRoom && message) {
 
         try {
-            addmsj.msj.push({
-                msj: message,
-                date: Date
-            })
-            addmsj.save()
-            ressOk = { ress: { UserRooms, message }, WhatHappened: "save msj ok" }
+
+            const RoomAddMsj = await ChatsRoom.findOne({ idWs: socketId })
+            let addmsjChatsRoom = await RoomAddMsj.Rooms
+
+            for (let i = 0; i < addmsjChatsRoom.length; i++) {
+                const room = addmsjChatsRoom[i];
+                if (room.Room == nameRoom) {
+                    await addmsjChatsRoom[i].msj.push({
+                        msj: message,
+                        date: Date
+                    })
+                    RoomAddMsj.Rooms = await addmsjChatsRoom
+                    RoomAddMsj.save()
+                }
+            }
+
         } catch (error) {
+
+            console.log(error);
+            ressOk = { ress: { UserRooms, message }, WhatHappened: "save msj ok" }
             ressErr = { ress: error, WhatHappened: "something went wrong when saving the msg" }
         }
         return { ressOk, ressErr }
     } else {
-        console.log(socketId, nameUser, nameRoom, message);
         ressErr = "missing data or id error"
         return { ressOk, ressErr }
     }
@@ -134,13 +145,7 @@ const deleteUser = async (idWs) => {
     const index = await ChatsRoom.findByIdAndDelete(idWs)
     console.log(index);
 }
-// const getUser = id => {
-//     let user = User.find(user => user.id == id)
-//     return user
-// }
 
-
-// const getUsers = (nameRoom) => User.filter(user => user.nameRoom === nameRoom)
 const disconnect = (socketId) => {
     const UserRooms = ChatsRoom.findOne({ idWs: socketId })
     if (UserRooms) {
