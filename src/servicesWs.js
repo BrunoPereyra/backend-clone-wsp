@@ -51,7 +51,7 @@ const addUser = async (id, name, nameRoom) => {
         } else if (repeatUser == undefined) {
             UserRoom.Rooms.push({
                 Room: nameRoom,
-                msj: [],
+                msjRoom: [],
             })
             try {
                 await UserRoom.save()
@@ -70,7 +70,7 @@ const addUser = async (id, name, nameRoom) => {
             const chatNewConnect = new ChatsRoom({
                 Rooms: [{
                     Room: nameRoom,
-                    msj: [],
+                    msjRoom: [],
                 }],
                 idWs: id,
                 nameUser: name
@@ -98,6 +98,9 @@ const addUser = async (id, name, nameRoom) => {
 const SaveMsj = async (socketId, nameUser, nameRoom, message) => {
 
     const UserRooms = await ChatsRoom.findOne({ nameUser: nameUser })
+    let ressOk = {}
+    let ressErr = {}
+
     if (UserRooms == null) {
         ressErr = {
             ress: "user room the not exist",
@@ -105,8 +108,6 @@ const SaveMsj = async (socketId, nameUser, nameRoom, message) => {
         }
         return { ressOk, ressErr }
     }
-    let ressOk = {}
-    let ressErr = {}
 
     if (UserRooms.idWs === socketId && nameRoom && message) {
 
@@ -118,15 +119,14 @@ const SaveMsj = async (socketId, nameUser, nameRoom, message) => {
             for (let i = 0; i < addmsjChatsRoom.length; i++) {
                 const room = addmsjChatsRoom[i];
                 if (room.Room == nameRoom) {
-                    await addmsjChatsRoom[i].msj.push({
+                    await addmsjChatsRoom[i].msjRoom.push({
                         msj: message,
-                        date: Date
+                        date: Date()
                     })
-                    RoomAddMsj.Rooms = await addmsjChatsRoom
-                    RoomAddMsj.save()
+                    RoomAddMsj.Rooms[i] = await room
+                    await RoomAddMsj.save()
                 }
             }
-
         } catch (error) {
 
             console.log(error);
