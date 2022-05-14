@@ -1,5 +1,5 @@
 const mongoose = require("mongoose")
-const connectionString = process.env.DB  || "mongodb+srv://brunowhatsapp:W9r307vmgySGfC6V@cluster0.kaqre.mongodb.net/clone-whatsapp?retryWrites=true&w=majority"
+const connectionString = process.env.DB  
 require("colors")
 
 mongoose.connect(connectionString,
